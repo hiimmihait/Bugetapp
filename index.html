@@ -119,6 +119,8 @@
     margin-bottom:12px;
   }
   .sec-title{ font-size:17px; font-weight:600; margin:0; }
+  .sec-right{ display:flex; align-items:center; gap:10px; }
+  .sec-total{ font-size:14px; font-weight:600; color:var(--text-dim); }
   .sec-icon{ color:var(--text-dim); display:flex; }
 
   .item-list{
@@ -635,7 +637,6 @@ function render(){
     <div class="top">
       <div>
         <p class="month-title" onclick="openHistory()">${monthLabel(state.current)}</p>
-        <p class="month-sub">Buget universal activ</p>
       </div>
       <div class="nav">
         <button class="account-btn" onclick="openAccount()" aria-label="Cont">${accountIcon()}</button>
@@ -656,7 +657,10 @@ function render(){
     <section>
       <div class="sec-head">
         <p class="sec-title">Cheltuieli fixe</p>
-        <span class="sec-icon">${iconSection('fixe')}</span>
+        <div class="sec-right">
+          <span class="sec-total">${RON(totalAll(data.fixe))}</span>
+          <span class="sec-icon">${iconSection('fixe')}</span>
+        </div>
       </div>
       ${itemsHtml('fixe', data.fixe)}
       ${addRowHtml('fixe')}
@@ -665,7 +669,10 @@ function render(){
     <section>
       <div class="sec-head">
         <p class="sec-title">Cheltuieli ocazionale</p>
-        <span class="sec-icon">${iconSection('ocazionale')}</span>
+        <div class="sec-right">
+          <span class="sec-total">${RON(totalAll(data.ocazionale))}</span>
+          <span class="sec-icon">${iconSection('ocazionale')}</span>
+        </div>
       </div>
       ${itemsHtml('ocazionale', data.ocazionale)}
       ${addRowHtml('ocazionale')}
@@ -674,7 +681,10 @@ function render(){
     <section>
       <div class="sec-head">
         <p class="sec-title">Economii</p>
-        <span class="sec-icon">${iconSection('economii')}</span>
+        <div class="sec-right">
+          <span class="sec-total">${RON(totalAll(data.economii))}</span>
+          <span class="sec-icon">${iconSection('economii')}</span>
+        </div>
       </div>
       ${itemsHtml('economii', data.economii)}
       ${addRowHtml('economii')}
