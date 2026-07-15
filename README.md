@@ -1,15 +1,36 @@
-# Buget — PWA personal, cu sincronizare între dispozitive
+# Buget
 
-Aplicație de bugetare lunară, instalabilă ca PWA real pe iPhone, cu date salvate în cloud (Firebase) — te conectezi cu contul Google și vezi aceleași date pe orice dispozitiv.
+Aplicație personală de bugetare lunară, construită ca PWA (Progressive Web App) — se instalează pe ecranul principal al telefonului ca o aplicație reală, funcționează offline și sincronizează datele în cloud între toate dispozitivele tale, prin autentificare cu Google.
 
-## Ce conține
+## Ce face
+
+- **Buget lunar** — setezi o sumă totală pentru lună; aplicația calculează automat cât ți-a mai rămas pe măsură ce adaugi cheltuieli.
+- **Cheltuieli fixe** — chirie, abonamente, facturi recurente. Se copiază automat în luna următoare, ca să nu le reintroduci de fiecare dată.
+- **Cheltuieli ocazionale** — cumpărături, ieșiri, orice cost neregulat.
+- **Economii** — o secțiune separată pentru sumele puse deoparte.
+- Fiecare categorie afișează suma totală a elementelor din ea.
+- Poți edita numele și suma oricărei cheltuieli deja adăugate, sau o poți șterge.
+- Bifarea unei cheltuieli o marchează ca plătită (vizual), fără să afecteze calculul sumei rămase — suma se scade din buget din momentul adăugării.
+- Navigare rapidă între luni, cu istoric complet; aplicația se deschide mereu pe ultima lună în care ai făcut o modificare.
+- Autentificare cu Google — aceleași date, pe orice telefon sau computer.
+- Funcționează offline (datele locale sunt disponibile chiar și fără semnal; se sincronizează la reconectare).
+
+## Tehnologii
+
+- HTML, CSS și JavaScript vanilla (fără framework, fără build step)
+- Firebase Authentication (Google Sign-In)
+- Firebase Firestore pentru salvarea datelor
+- Service Worker pentru cache și funcționare offline
+- Web App Manifest pentru instalare ca PWA pe iOS/Android
+
+## Structura proiectului
 
 ```
 buget-pwa/
-├── index.html                  aplicația
+├── index.html                  aplicația (interfață + logică)
 ├── manifest.json                configurația PWA (nume, iconițe, culori)
-├── sw.js                        service worker (funcționare offline)
-├── firebase-config.js           AICI pui cheile tale Firebase (pasul 2 mai jos)
+├── sw.js                        service worker (cache & offline)
+├── firebase-config.js           cheile proiectului tău Firebase
 ├── icons/
 │   ├── icon-192.png
 │   ├── icon-512.png
@@ -17,13 +38,14 @@ buget-pwa/
 └── README.md
 ```
 
-## Pasul 1 — creează un proiect Firebase (gratuit)
+## Cum îl pui pe picioare
 
-1. Intră pe console.firebase.google.com și conectează-te cu contul tău Google.
-2. Apasă **Add project** (Adaugă proiect). Dă-i un nume, ex. `buget-personal`. Poți dezactiva Google Analytics (nu e necesar). Apasă **Create project**.
-3. În meniul din stânga, apasă pe **Build → Authentication**. Apasă **Get started**. La lista de furnizori, alege **Google**, activează comutatorul (Enable), alege un email de suport, apasă **Save**.
-4. Tot în meniul din stânga, apasă **Build → Firestore Database**. Apasă **Create database**. Alege o locație (orice, ex. `eur3`) și selectează **Start in production mode**. Apasă **Create**.
-5. După ce baza de date e creată, mergi la tab-ul **Rules** din Firestore și înlocuiește conținutul cu:
+Pe scurt, ai nevoie de un proiect Firebase gratuit (pentru autentificare și stocarea datelor) și de un loc unde să găzduiești fișierele static (GitHub Pages, gratuit).
+
+1. **Creează un proiect Firebase** — console.firebase.google.com → Add project.
+2. **Activează Google Sign-In** — Build → Authentication → Get started → provider Google → Enable.
+3. **Creează baza de date** — Build → Firestore Database → Create database → production mode.
+4. **Setează regulile Firestore**, în tab-ul Rules:
 
    ```
    rules_version = '2';
@@ -36,41 +58,13 @@ buget-pwa/
    }
    ```
 
-   Apasă **Publish**. Asta face ca fiecare cont Google să-și vadă doar propriile date.
+5. **Înregistrează o aplicație Web** — Project settings → Your apps → `</>` → copiezi valorile în `firebase-config.js`.
+6. **Publică pe GitHub Pages** — încarci toate fișierele într-un repository nou, apoi Settings → Pages → Deploy from a branch → `main` / `root`.
+7. **Autorizează domeniul** — Authentication → Settings → Authorized domains → adaugi domeniul tău `*.github.io`.
+8. **Instalează pe telefon** — deschizi link-ul în Safari (iOS) sau Chrome (Android) → Share/meniu → Add to Home Screen.
 
-## Pasul 2 — copiază cheile de configurare
+## Confidențialitate
 
-1. În Firebase Console, apasă pe roata dințată din stânga-sus → **Project settings**.
-2. Coboară la secțiunea **Your apps**, apasă pe iconița `</>` (Web) pentru a înregistra o aplicație web. Dă-i un nume (ex. `buget-web`), NU bifa Firebase Hosting. Apasă **Register app**.
-3. Îți va apărea un bloc de cod cu `const firebaseConfig = { ... }`. Copiază acele valori.
-4. Deschide fișierul `firebase-config.js` din acest folder și înlocuiește valorile placeholder cu cele copiate. Salvează fișierul.
+`firebase-config.js` conține chei publice, nu secrete — sunt vizibile oricui deschide site-ul, e normal pentru aplicații web Firebase. Ce protejează efectiv datele fiecărui utilizator sunt regulile Firestore de mai sus: fiecare cont Google are acces doar la propriile date.
 
-## Pasul 3 — publică pe GitHub Pages
-
-1. Creează un repository nou pe github.com (Public).
-2. `Add file → Upload files` și încarcă tot conținutul folderului `buget-pwa` (inclusiv `firebase-config.js` completat și folderul `icons`) direct în rădăcina repo-ului. Apasă **Commit changes**.
-3. `Settings → Pages` → Source: `Deploy from a branch`, Branch: `main`, folder `/ (root)` → **Save**.
-4. După 1-2 minute, vei avea un link de forma `https://user-ul-tau.github.io/numele-repo/`.
-
-## Pasul 4 — autorizează domeniul în Firebase
-
-Firebase blochează implicit autentificarea de pe domenii necunoscute:
-
-1. În Firebase Console → **Authentication → Settings → Authorized domains**.
-2. Apasă **Add domain** și adaugă `user-ul-tau.github.io` (fără `https://` și fără calea către repo).
-3. Salvează.
-
-## Pasul 5 — instalează pe iPhone
-
-1. Deschide link-ul GitHub Pages în Safari.
-2. Apasă **Continuă cu Google** și conectează-te.
-3. Apasă butonul Share → **Add to Home Screen**.
-4. Repetă pe orice alt dispozitiv (telefon, laptop) — conectându-te cu același cont Google vei vedea aceleași date, sincronizate automat.
-
-## Actualizări ulterioare
-
-Dacă modifici `index.html`, urcă din nou fișierul pe GitHub și crește numărul din `CACHE_NAME` din `sw.js` (ex. `buget-cache-v4`), altfel dispozitivele deja instalate vor continua să folosească versiunea veche din cache o vreme.
-
-## Notă despre confidențialitate
-
-`firebase-config.js` conține chei publice (nu secrete — sunt vizibile oricui deschide site-ul, e normal pentru aplicații web Firebase). Ce protejează efectiv datele tale sunt regulile Firestore de la Pasul 1.5 — asigură-te că le-ai publicat exact ca mai sus, altfel oricine autentificat ar putea citi datele altcuiva.
+Datele nu sunt colectate, vândute sau folosite în alt scop — stau exclusiv în baza de date Firestore a proiectului tău, sub controlul tău complet.
