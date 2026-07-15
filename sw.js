@@ -1,8 +1,9 @@
-const CACHE_NAME = "buget-cache-v1";
+const CACHE_NAME = "buget-cache-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./firebase-config.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-512-maskable.png"
@@ -26,6 +27,8 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request)
