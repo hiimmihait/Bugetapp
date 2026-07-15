@@ -66,7 +66,8 @@
     cursor:pointer;
   }
   .nav-btn:active{ opacity:0.5; }
-  .month-title{ font-size:22px; font-weight:600; margin:0; letter-spacing:-0.02em; text-transform:capitalize;}
+  .month-title{ font-size:22px; font-weight:600; margin:0; letter-spacing:-0.02em; text-transform:capitalize; cursor:pointer; }
+  .month-title:active{ opacity:0.6; }
   .month-sub{ font-size:13px; color:var(--text-dim); margin:3px 0 0; }
   .cal-btn{
     background:var(--card);
@@ -430,7 +431,7 @@ function newId(){ return 'i' + Math.random().toString(36).slice(2,10); }
 
 let firebaseApp, auth, db;
 let currentUser = null;
-let remote = { index: [], months: {} };
+let remote = { index: [], months: {}, last: null };
 let remoteLoaded = false;
 
 function initFirebase(){
@@ -449,9 +450,9 @@ async function loadRemote(){
   const snap = await docRef().get();
   if(snap.exists){
     const d = snap.data();
-    remote = { index: d.index || [], months: d.months || {} };
+    remote = { index: d.index || [], months: d.months || {}, last: d.last || null };
   }else{
-    remote = { index: [], months: {} };
+    remote = { index: [], months: {}, last: null };
   }
   remoteLoaded = true;
   return remote;
@@ -476,6 +477,7 @@ async function loadMonth(key){
 async function saveMonth(key, data){
   await loadRemote();
   remote.months[key] = data;
+  remote.last = key;
   await saveRemote();
 }
 
@@ -491,9 +493,10 @@ async function buildNewMonth(key){
 }
 
 async function init(){
-  const now = new Date();
-  const key = monthKey(now.getFullYear(), now.getMonth()+1);
   state.index = await loadIndex();
+  const now = new Date();
+  const currentCalKey = monthKey(now.getFullYear(), now.getMonth()+1);
+  const key = remote.last || currentCalKey;
   let data = await loadMonth(key);
   if(!data){
     data = await buildNewMonth(key);
@@ -631,13 +634,10 @@ function render(){
   app.innerHTML = `
     <div class="top">
       <div>
-        <p class="month-title">${monthLabel(state.current)}</p>
+        <p class="month-title" onclick="openHistory()">${monthLabel(state.current)}</p>
         <p class="month-sub">Buget universal activ</p>
       </div>
       <div class="nav">
-        <button class="nav-btn" onclick="navMonth(-1)">${iconChevron('left')}</button>
-        <button class="cal-btn" onclick="openHistory()">${iconCal()}</button>
-        <button class="nav-btn" onclick="navMonth(1)">${iconChevron('right')}</button>
         <button class="account-btn" onclick="openAccount()" aria-label="Cont">${accountIcon()}</button>
       </div>
     </div>
