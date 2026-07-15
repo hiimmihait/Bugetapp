@@ -15,6 +15,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
   :root{
@@ -474,6 +475,9 @@ let remoteLoaded = false;
 
 function initFirebase(){
   firebaseApp = firebase.initializeApp(firebaseConfig);
+  if(typeof recaptchaSiteKey !== 'undefined' && recaptchaSiteKey && !recaptchaSiteKey.startsWith('PUNE_')){
+    firebase.appCheck().activate(recaptchaSiteKey, true);
+  }
   auth = firebase.auth();
   db = firebase.firestore();
   try{ db.enablePersistence({ synchronizeTabs:true }).catch(()=>{}); }catch(e){}
