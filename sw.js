@@ -1,4 +1,4 @@
-const CACHE_NAME = "buget-cache-v4";
+const CACHE_NAME = "buget-cache-v5";
 const ASSETS = [
   "./",
   "./index.html",
