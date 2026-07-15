@@ -343,6 +343,38 @@
   .month-opt-name.active{ font-weight:600; }
   .month-opt-sub{ font-size:13px; color:var(--text-dim); }
 
+  .picker-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .picker-select{
+    flex:1;
+    background:var(--card);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 12px;
+    font-size:16px;
+    font-family:inherit;
+    text-transform:capitalize;
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  .picker-select:focus{ outline:none; border-color:var(--text-dim); }
+  .picker-go{
+    width:100%;
+    background:var(--accent);
+    color:#000;
+    border:none;
+    border-radius:12px;
+    padding:15px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .picker-go:active{ opacity:0.7; }
+
   .loading{
     text-align:center;
     color:var(--text-dim);
@@ -402,8 +434,12 @@
 <div class="sheet-backdrop" id="histBackdrop">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <p class="sheet-title">Istoric luni</p>
-    <div id="monthList"></div>
+    <p class="sheet-title">Selectează luna</p>
+    <div class="picker-row">
+      <select id="pickMonth" class="picker-select"></select>
+      <select id="pickYear" class="picker-select"></select>
+    </div>
+    <button class="picker-go" onclick="confirmMonthPick()">Mergi la luna aceasta</button>
   </div>
 </div>
 
@@ -790,20 +826,31 @@ async function navMonth(delta){
 
 async function openHistory(){
   const backdrop = document.getElementById('histBackdrop');
-  const list = document.getElementById('monthList');
-  let keys = [...new Set([...state.index, state.current])].sort().reverse();
-  list.innerHTML = keys.map(k => {
-    return `<div class="month-opt" onclick="selectMonth('${k}')">
-      <span class="month-opt-name ${k===state.current?'active':''}">${monthLabel(k)}</span>
-      ${k===state.current ? '<span class="month-opt-sub">curent</span>' : ''}
-    </div>`;
-  }).join('');
+  const [curY, curM] = state.current.split('-').map(Number);
+
+  const monthSel = document.getElementById('pickMonth');
+  monthSel.innerHTML = MONTHS.map((m, i) =>
+    `<option value="${i+1}" ${i+1===curM?'selected':''}>${m}</option>`
+  ).join('');
+
+  const yearSel = document.getElementById('pickYear');
+  const startY = curY - 5;
+  const endY = curY + 5;
+  let yearOpts = '';
+  for(let y = startY; y <= endY; y++){
+    yearOpts += `<option value="${y}" ${y===curY?'selected':''}>${y}</option>`;
+  }
+  yearSel.innerHTML = yearOpts;
+
   backdrop.classList.add('open');
 }
 function closeHistory(){
   document.getElementById('histBackdrop').classList.remove('open');
 }
-async function selectMonth(key){
+async function confirmMonthPick(){
+  const m = Number(document.getElementById('pickMonth').value);
+  const y = Number(document.getElementById('pickYear').value);
+  const key = monthKey(y, m);
   closeHistory();
   await goToMonth(key);
 }
