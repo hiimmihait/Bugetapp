@@ -137,8 +137,27 @@
     gap:12px;
     padding:14px 16px;
     border-bottom:1px solid var(--line);
+    background:var(--card);
   }
   .item-row:last-child{ border-bottom:none; }
+  .item-row.dragging{
+    box-shadow:0 8px 20px rgba(0,0,0,0.45);
+    border-radius:12px;
+    background:var(--card-2);
+  }
+
+  .item-drag{
+    touch-action:none;
+    background:none;
+    border:none;
+    color:var(--text-faint);
+    padding:4px;
+    display:flex;
+    align-items:center;
+    cursor:grab;
+    flex:none;
+  }
+  .item-drag:active{ cursor:grabbing; }
 
   .checkbox{
     width:22px;
@@ -622,8 +641,87 @@ function iconSection(cat){
   return map[cat] || '';
 }
 
+let dragCtx = null;
 let openAddCat = null;
 let editingItem = null;
+
+function startDrag(e, cat, id){
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  openAddCat = null;
+  editingItem = null;
+
+  const handle = e.currentTarget;
+  const row = handle.closest('.item-row');
+  const list = row.parentElement;
+  const rows = Array.from(list.querySelectorAll('.item-row'));
+  const startIndex = rows.indexOf(row);
+  const rowHeight = row.getBoundingClientRect().height;
+  const startY = e.clientY;
+
+  try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+
+  row.classList.add('dragging');
+  row.style.zIndex = '20';
+  row.style.position = 'relative';
+  row.style.transition = 'none';
+
+  dragCtx = { cat, id, row, list, rows, startIndex, targetIndex: startIndex, rowHeight, startY, pointerId: e.pointerId };
+
+  function onMove(ev){
+    if(!dragCtx) return;
+    const dy = ev.clientY - dragCtx.startY;
+    dragCtx.row.style.transform = `translateY(${dy}px)`;
+
+    let shift = Math.round(dy / dragCtx.rowHeight);
+    let target = dragCtx.startIndex + shift;
+    target = Math.max(0, Math.min(dragCtx.rows.length - 1, target));
+    dragCtx.targetIndex = target;
+
+    dragCtx.rows.forEach((r, i) => {
+      if(r === dragCtx.row) return;
+      let offset = 0;
+      if(dragCtx.startIndex < target){
+        if(i > dragCtx.startIndex && i <= target) offset = -1;
+      }else if(dragCtx.startIndex > target){
+        if(i >= target && i < dragCtx.startIndex) offset = 1;
+      }
+      r.style.transition = 'transform 0.15s ease';
+      r.style.transform = offset ? `translateY(${offset * dragCtx.rowHeight}px)` : '';
+    });
+  }
+
+  async function onUp(ev){
+    if(!dragCtx) return;
+    const ctx = dragCtx;
+    dragCtx = null;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+    try{ handle.releasePointerCapture(ctx.pointerId); }catch(err){}
+
+    ctx.rows.forEach(r => {
+      r.style.transition = '';
+      r.style.transform = '';
+      r.style.zIndex = '';
+      r.style.position = '';
+    });
+    ctx.row.classList.remove('dragging');
+
+    if(ctx.targetIndex !== ctx.startIndex){
+      const data = state.data[state.current];
+      const arr = data[ctx.cat];
+      const [moved] = arr.splice(ctx.startIndex, 1);
+      arr.splice(ctx.targetIndex, 0, moved);
+      await persistCurrent();
+      render();
+    }
+  }
+
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+}
 
 function itemsHtml(cat, list){
   if(list.length === 0 && openAddCat !== cat){
@@ -642,7 +740,8 @@ function itemsHtml(cat, list){
     </div>`;
     }
     return `
-    <div class="item-row ${item.checked ? 'checked':''}">
+    <div class="item-row ${item.checked ? 'checked':''}" data-id="${item.id}">
+      <button class="item-drag" onpointerdown="startDrag(event,'${cat}','${item.id}')" aria-label="Mută">${iconGrip()}</button>
       <button class="checkbox ${item.checked?'checked':''}" onclick="toggleItem('${cat}','${item.id}')">${iconCheck()}</button>
       <div class="item-content" onclick="startEditItem('${cat}','${item.id}')">
         <span class="item-name">${escapeHtml(item.name)}</span>
@@ -652,6 +751,10 @@ function itemsHtml(cat, list){
     </div>`;
   }).join('');
   return `<div class="item-list">${rows}</div>`;
+}
+
+function iconGrip(){
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.8"></circle><circle cx="16" cy="6" r="1.8"></circle><circle cx="8" cy="12" r="1.8"></circle><circle cx="16" cy="12" r="1.8"></circle><circle cx="8" cy="18" r="1.8"></circle><circle cx="16" cy="18" r="1.8"></circle></svg>';
 }
 
 function escapeAttr(s){
@@ -669,7 +772,7 @@ function escapeHtml(s){
 function render(){
   const data = state.data[state.current];
   const buget = Number(data.buget||0);
-  const cheltuit = totalAll(data.fixe) + totalAll(data.ocazionale);
+  const cheltuit = totalAll(data.fixe) + totalAll(data.ocazionale) + totalAll(data.economii);
   const ramas = buget - cheltuit;
 
   const app = document.getElementById('app');
@@ -769,6 +872,7 @@ async function confirmAdd(cat){
 }
 
 async function toggleItem(cat, id){
+  openAddCat = null;
   const data = state.data[state.current];
   const item = data[cat].find(i=>i.id===id);
   if(item){ item.checked = !item.checked; }
@@ -801,6 +905,7 @@ async function confirmEdit(cat, id){
 }
 
 async function deleteItem(cat, id){
+  openAddCat = null;
   const data = state.data[state.current];
   data[cat] = data[cat].filter(i=>i.id!==id);
   await persistCurrent();
@@ -808,6 +913,8 @@ async function deleteItem(cat, id){
 }
 
 function editBuget(){
+  openAddCat = null;
+  editingItem = null;
   const data = state.data[state.current];
   const el = document.getElementById('bugetDisplay');
   el.outerHTML = `<input class="stat-input" id="bugetInput" type="number" inputmode="decimal" value="${data.buget||''}" />`;
@@ -829,6 +936,9 @@ async function navMonth(delta){
 }
 
 async function openHistory(){
+  openAddCat = null;
+  editingItem = null;
+  render();
   const backdrop = document.getElementById('histBackdrop');
   const [curY, curM] = state.current.split('-').map(Number);
 
